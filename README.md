@@ -17,7 +17,8 @@ ESPHome motion sensor: Wemos D1 mini + Panasonic EKMC PaPIRs.
 | Minimum trigger time | Ignore detections shorter than this (raise if you get false triggers) | 0 ms |
 | Occupancy timeout | How long *Occupancy* stays on after motion stops | 120 s |
 | Motion detection | Turn sensing off without unplugging | On |
-| LED on motion | Blink the on-board LED when motion is detected | On |
+| LED on motion | Light the on-board LED when motion is detected | Off |
+| LED brightness | How bright the LED is when it lights | 20 % |
 
 **Motion** is best for alerts and quick triggers. **Occupancy** is best for lights and heating.
 
@@ -29,3 +30,7 @@ copy this config into your own ESPHome and change anything you like.
 ## Wiring
 
 PIR output to D0 (GPIO16). Change `pir_pin` in the config if you wire it elsewhere.
+
+## Updates
+
+New firmware appears in Home Assistant as **Firmware update available** on the device. Click **Install**.

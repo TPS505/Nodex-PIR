@@ -12,7 +12,7 @@ esphome:
   name_add_mac_suffix: true          # unique per unit, e.g. nodex-pir-a1b2c3
   project:
     name: nodexdevices.pir-sensor
-    version: "1.0.0"
+    version: "1.1.0"
 
 esp8266:
   board: d1_mini
@@ -27,6 +27,17 @@ api:                                 # no shared key - each user sets their own 
 
 ota:
   - platform: esphome
+  - platform: http_request           # lets the device install updates you publish
+
+http_request:
+  verify_ssl: false                  # ESP8266 can't verify HTTPS certificates
+
+# Shows "Firmware update available" in Home Assistant when you publish a new version
+update:
+  - platform: http_request
+    name: Firmware
+    source: https://tps505.github.io/Nodex-PIR/firmware/manifest.json
+    update_interval: 6h
 
 dashboard_import:
   package_import_url: github://TPS505/Nodex-PIR/nodex-pir.yaml@main
@@ -82,6 +93,20 @@ number:
     restore_value: true
     mode: box
 
+  - platform: template
+    id: led_brightness
+    name: LED brightness
+    icon: mdi:brightness-6
+    entity_category: config
+    unit_of_measurement: "%"
+    min_value: 1
+    max_value: 100
+    step: 1
+    initial_value: 20
+    optimistic: true
+    restore_value: true
+    mode: slider
+
 switch:
   - platform: template
     id: detect_enabled
@@ -97,7 +122,7 @@ switch:
     icon: mdi:led-on
     entity_category: config
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: RESTORE_DEFAULT_OFF  # off out of the box - it's bright at night
     on_turn_off:
       - output.turn_off: onboard_led
 
@@ -123,7 +148,9 @@ binary_sensor:
           condition:
             switch.is_on: led_on_motion
           then:
-            - output.turn_on: onboard_led
+            - output.set_level:
+                id: onboard_led
+                level: !lambda 'return id(led_brightness).state / 100.0;'
     on_release:
       - output.turn_off: onboard_led
 
@@ -141,8 +168,9 @@ binary_sensor:
     name: Status
 
 output:
-  - platform: gpio
+  - platform: esp8266_pwm            # PWM so the brightness can be dimmed
     id: onboard_led
+    frequency: 1000 Hz
     pin:
       number: GPIO2
       inverted: true
