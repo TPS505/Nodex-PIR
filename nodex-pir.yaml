@@ -1,0 +1,178 @@
+# Nodex PIR Sensor - Wemos D1 mini + Panasonic EKMC PaPIRs
+# https://github.com/TPS505/Nodex-PIR
+
+substitutions:
+  name: nodex-pir
+  friendly_name: Nodex PIR
+  pir_pin: GPIO16                    # D0
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true          # unique per unit, e.g. nodex-pir-a1b2c3
+  project:
+    name: nodexdevices.pir-sensor
+    version: "1.0.0"
+
+esp8266:
+  board: d1_mini
+  restore_from_flash: true           # keep user settings through power cuts
+
+preferences:
+  flash_write_interval: 1min
+
+logger:
+
+api:                                 # no shared key - each user sets their own on adoption
+
+ota:
+  - platform: esphome
+
+dashboard_import:
+  package_import_url: github://TPS505/Nodex-PIR/nodex-pir.yaml@main
+  import_full_config: true
+
+wifi:
+  ap:
+    ssid: "Nodex PIR Setup"
+captive_portal:
+improv_serial:
+
+# ---------------------------------------------------------------- settings
+number:
+  - platform: template
+    id: hold_time
+    name: Motion hold time
+    icon: mdi:timer-outline
+    entity_category: config
+    unit_of_measurement: s
+    min_value: 1
+    max_value: 600
+    step: 1
+    initial_value: 5
+    optimistic: true
+    restore_value: true
+    mode: box
+
+  - platform: template
+    id: trigger_time
+    name: Minimum trigger time
+    icon: mdi:timer-sand
+    entity_category: config
+    unit_of_measurement: ms
+    min_value: 0
+    max_value: 2000
+    step: 50
+    initial_value: 0
+    optimistic: true
+    restore_value: true
+    mode: box
+
+  - platform: template
+    id: occupancy_timeout
+    name: Occupancy timeout
+    icon: mdi:home-clock-outline
+    entity_category: config
+    unit_of_measurement: s
+    min_value: 10
+    max_value: 3600
+    step: 10
+    initial_value: 120
+    optimistic: true
+    restore_value: true
+    mode: box
+
+switch:
+  - platform: template
+    id: detect_enabled
+    name: Motion detection
+    icon: mdi:motion-sensor
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+  - platform: template
+    id: led_on_motion
+    name: LED on motion
+    icon: mdi:led-on
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_off:
+      - output.turn_off: onboard_led
+
+# ---------------------------------------------------------------- sensing
+binary_sensor:
+  - platform: gpio
+    id: motion
+    name: Motion
+    device_class: motion
+    pin:
+      number: ${pir_pin}
+      mode:
+        input: true
+        pulldown: true
+    filters:
+      - lambda: |-
+          if (!id(detect_enabled).state) return false;
+          return x;
+      - delayed_on: !lambda 'return (uint32_t) id(trigger_time).state;'
+      - delayed_off: !lambda 'return (uint32_t) (id(hold_time).state * 1000);'
+    on_press:
+      - if:
+          condition:
+            switch.is_on: led_on_motion
+          then:
+            - output.turn_on: onboard_led
+    on_release:
+      - output.turn_off: onboard_led
+
+  # Stays on while motion keeps re-triggering, clears after the timeout.
+  # Use this one for lights / heating automations.
+  - platform: template
+    id: occupancy
+    name: Occupancy
+    device_class: occupancy
+    lambda: 'return id(motion).state;'
+    filters:
+      - delayed_off: !lambda 'return (uint32_t) (id(occupancy_timeout).state * 1000);'
+
+  - platform: status
+    name: Status
+
+output:
+  - platform: gpio
+    id: onboard_led
+    pin:
+      number: GPIO2
+      inverted: true
+
+# ---------------------------------------------------------------- diagnostics
+sensor:
+  - platform: wifi_signal
+    name: Wi-Fi signal
+    update_interval: 60s
+    entity_category: diagnostic
+  - platform: uptime
+    name: Uptime
+    entity_category: diagnostic
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: IP address
+      entity_category: diagnostic
+  - platform: version
+    name: Firmware version
+    entity_category: diagnostic
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: config
+  - platform: safe_mode
+    name: Safe mode
+    entity_category: config
+  - platform: factory_reset
+    name: Factory reset
+    entity_category: config
