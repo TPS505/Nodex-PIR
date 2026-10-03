@@ -1,6 +1,6 @@
 {
   "name": "Nodex PIR",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "home_assistant_domain": "esphome",
   "new_install_prompt_erase": false,
   "builds": [
@@ -9,8 +9,8 @@
       "parts": [ { "path": "nodex-pir.factory.bin", "offset": 0 } ],
       "ota": {
         "path": "nodex-pir.ota.bin",
-        "md5": "1e21175ff1f0378b05606e7521f6614a",
-        "summary": "Nodex PIR firmware 1.1.0",
+        "md5": "6406c1fd51973750795ba0fd0371d264",
+        "summary": "Nodex PIR firmware 1.2.0",
         "release_url": "https://github.com/TPS505/Nodex-PIR/releases"
       }
     }

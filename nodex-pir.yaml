@@ -12,7 +12,7 @@ esphome:
   name_add_mac_suffix: true          # unique per unit, e.g. nodex-pir-a1b2c3
   project:
     name: nodexdevices.pir-sensor
-    version: "1.1.0"
+    version: "1.2.0"
 
 esp8266:
   board: d1_mini
@@ -95,7 +95,7 @@ number:
 
   - platform: template
     id: led_brightness
-    name: LED brightness
+    name: Motion LED brightness
     icon: mdi:brightness-6
     entity_category: config
     unit_of_measurement: "%"
@@ -124,7 +124,12 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF  # off out of the box - it's bright at night
     on_turn_off:
-      - output.turn_off: onboard_led
+      - if:
+          condition:
+            lambda: 'return id(lit_by_motion);'
+          then:
+            - light.turn_off: status_led
+            - lambda: 'id(lit_by_motion) = false;'
 
 # ---------------------------------------------------------------- sensing
 binary_sensor:
@@ -144,15 +149,24 @@ binary_sensor:
       - delayed_on: !lambda 'return (uint32_t) id(trigger_time).state;'
       - delayed_off: !lambda 'return (uint32_t) (id(hold_time).state * 1000);'
     on_press:
+      # only light it if the user hasn't already turned the LED on themselves
       - if:
           condition:
-            switch.is_on: led_on_motion
+            and:
+              - switch.is_on: led_on_motion
+              - light.is_off: status_led
           then:
-            - output.set_level:
-                id: onboard_led
-                level: !lambda 'return id(led_brightness).state / 100.0;'
+            - lambda: 'id(lit_by_motion) = true;'
+            - light.turn_on:
+                id: status_led
+                brightness: !lambda 'return id(led_brightness).state / 100.0;'
     on_release:
-      - output.turn_off: onboard_led
+      - if:
+          condition:
+            lambda: 'return id(lit_by_motion);'
+          then:
+            - lambda: 'id(lit_by_motion) = false;'
+            - light.turn_off: status_led
 
   # Stays on while motion keeps re-triggering, clears after the timeout.
   # Use this one for lights / heating automations.
@@ -166,6 +180,21 @@ binary_sensor:
 
   - platform: status
     name: Status
+
+globals:
+  - id: lit_by_motion
+    type: bool
+    initial_value: "false"
+
+# The LED as a normal light in Home Assistant: on/off + brightness, usable in any automation
+light:
+  - platform: monochromatic
+    id: status_led
+    name: LED
+    icon: mdi:led-outline
+    output: onboard_led
+    default_transition_length: 0s
+    restore_mode: RESTORE_DEFAULT_OFF
 
 output:
   - platform: esp8266_pwm            # PWM so the brightness can be dimmed

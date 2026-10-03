@@ -18,7 +18,9 @@ ESPHome motion sensor: Wemos D1 mini + Panasonic EKMC PaPIRs.
 | Occupancy timeout | How long *Occupancy* stays on after motion stops | 120 s |
 | Motion detection | Turn sensing off without unplugging | On |
 | LED on motion | Light the on-board LED when motion is detected | Off |
-| LED brightness | How bright the LED is when it lights | 20 % |
+| Motion LED brightness | How bright the LED is when motion lights it | 20 % |
+
+The **LED** also appears as a normal light, so you can turn it on, off or dim it from Home Assistant or automations.
 
 **Motion** is best for alerts and quick triggers. **Occupancy** is best for lights and heating.
 
