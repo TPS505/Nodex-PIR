@@ -2,6 +2,12 @@
 # Build the firmware and publish it for over-the-air updates.
 # Usage: bump "version:" in nodex-pir.yaml, then run ./release.sh, then commit + push.
 set -e
+# Build with this ESPHome version on purpose. Newer ESPHome (2026.x) stops sending entity
+# object_ids, which breaks older Home Assistant installs (only one entity per type appears).
+ESPHOME_VERSION=2025.8.1
+if [ "$(esphome version | awk '{print $2}')" != "$ESPHOME_VERSION" ]; then
+  echo "Need ESPHome $ESPHOME_VERSION for releases:  pip install esphome==$ESPHOME_VERSION"; exit 1
+fi
 YAML=nodex-pir.yaml
 NAME=nodex-pir
 OUT=docs/firmware
